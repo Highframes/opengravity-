@@ -5,17 +5,24 @@ import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limi
 
 dotenv.config({ override: true });
 
-// Configuração SQLite (Local Cache)
-const localDb = new Database(process.env.DB_PATH || './memory.db');
-localDb.exec(`
-  CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    role TEXT,
-    content TEXT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    synced INTEGER DEFAULT 0
-  )
-`);
+// Configuração SQLite (opcional, para uso local)
+let localDb: any = null;
+if (process.env.DB_PATH && !process.env.VERCEL) {
+  try {
+    localDb = new Database(process.env.DB_PATH);
+    localDb.exec(`
+          CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role TEXT,
+            content TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            synced INTEGER DEFAULT 0
+          )
+        `);
+  } catch (e) {
+    console.warn("SQLite não disponível, usando apenas Firestore.");
+  }
+}
 
 // Configuração Firebase (Cloud Memory)
 const firebaseConfig = {
@@ -31,42 +38,50 @@ const app = initializeApp(firebaseConfig);
 const cloudDb = getFirestore(app);
 
 export async function saveMessage(role: string, content: string) {
-  // Salva no SQLite primeiro (Fast)
-  const stmt = localDb.prepare('INSERT INTO messages (role, content) VALUES (?, ?)');
-  const info = stmt.run(role, content);
-  const localId = info.lastInsertRowid;
+  let localId = null;
+  if (localDb) {
+    try {
+      const stmt = localDb.prepare('INSERT INTO messages (role, content) VALUES (?, ?)');
+      const info = stmt.run(role, content);
+      localId = info.lastInsertRowid;
+    } catch (e) {
+      console.error("Erro SQLite:", e);
+    }
+  }
 
-  // Salva no Firestore (Persistence)
+  // Salva no Firestore (Sempre prioritário na Nuvem)
   try {
     await addDoc(collection(cloudDb, "messages"), {
       role,
       content,
       timestamp: serverTimestamp(),
-      localId: localId.toString()
+      localId: localId ? localId.toString() : null
     });
 
-    // Marca como sincronizado no SQLite
-    localDb.prepare('UPDATE messages SET synced = 1 WHERE id = ?').run(localId);
+    if (localDb && localId) {
+      localDb.prepare('UPDATE messages SET synced = 1 WHERE id = ?').run(localId);
+    }
   } catch (error) {
     console.error("Erro ao sincronizar com Firestore:", error);
   }
 }
 
 export async function getRecentMessages(limitCount: number = 10) {
-  // Tenta pegar do Firestore para ter o estado mais atual
   try {
     const q = query(collection(cloudDb, "messages"), orderBy("timestamp", "desc"), limit(limitCount));
     const querySnapshot = await getDocs(q);
     const messages = querySnapshot.docs.map(doc => doc.data()).reverse();
     if (messages.length > 0) return messages;
   } catch (error) {
-    console.error("Erro ao buscar do Firestore, usando cache local:", error);
+    console.error("Erro ao buscar do Firestore:", error);
   }
 
-  // Fallback para SQLite
-  return localDb.prepare('SELECT role, content FROM messages ORDER BY timestamp DESC LIMIT ?')
-    .all(limitCount)
-    .reverse();
+  if (localDb) {
+    return localDb.prepare('SELECT role, content FROM messages ORDER BY timestamp DESC LIMIT ?')
+      .all(limitCount)
+      .reverse();
+  }
+  return [];
 }
 
 export default localDb;

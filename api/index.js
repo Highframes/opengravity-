@@ -1,6 +1,6 @@
 import { Bot, webhookCallback } from "grammy";
-import { runAgent } from "../functions/src/agent.js";
-import { saveMessage } from "../functions/src/database.js";
+import { runAgent } from "../src/agent.js";
+import { saveMessage } from "../src/database.js";
 import dotenv from "dotenv";
 
 dotenv.config();
