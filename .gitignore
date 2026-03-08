@@ -3,11 +3,19 @@ dist/
 .env
 *.db
 *.log
+
+# Allow specific JSON files
 *.json
 !package.json
 !tsconfig.json
+!vercel.json
 !groq_models.json
-superpowers-main/
+!firestore.indexes.json
+!database.rules.json
+
+# Allow superpowers
+!superpowers-main/
+
 *.txt
 src/debug_groq.ts
 src/test_agent.ts
