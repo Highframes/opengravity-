@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "opengravity-6374b"
+  },
   "targets": {},
   "etags": {}
 }

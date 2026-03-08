@@ -1,6 +1,7 @@
 import { Bot } from "grammy";
 import dotenv from "dotenv";
 import { runAgent } from "./agent.js";
+import { saveMessage } from "./database.js";
 
 dotenv.config();
 
@@ -24,8 +25,14 @@ bot.on("message:text", async (ctx) => {
     await ctx.replyWithChatAction("typing");
 
     try {
-        const reply = await runAgent(ctx.message.text || "");
-        await ctx.reply(reply || "Não consegui processar isso.");
+        const userMessage = ctx.message.text || "";
+        await saveMessage("user", userMessage);
+
+        const reply = await runAgent(userMessage);
+        const botReply = reply || "Não consegui processar isso.";
+
+        await saveMessage("assistant", botReply);
+        await ctx.reply(botReply);
     } catch (e) {
         console.error(e);
         await ctx.reply("Erro no processamento local.");
