@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const SUPERPOWERS_DIR = "C:\\gravityclaw\\superpowers-main\\superpowers-main\\skills";
+const SUPERPOWERS_DIR = path.join(process.cwd(), 'superpowers-main', 'superpowers-main', 'skills');
 
 export interface Skill {
     name: string;
