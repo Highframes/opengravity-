@@ -41,6 +41,6 @@ export default async function handler(req: any, res: any) {
         res.status(200).send("OpenGravity Bot está ATIVO e aguardando mensagens via Webhook do Telegram! 🚀");
     } catch (e: any) {
         console.error("DEBUG ERROR:", e);
-        res.status(500).json({ error: e.message, stack: e.stack });
+        res.status(200).send("DEBUG ERROR: " + e.message + "\nStack: " + e.stack);
     }
 }
