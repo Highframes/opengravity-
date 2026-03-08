@@ -1,4 +1,3 @@
-import Database from 'better-sqlite3';
 import dotenv from 'dotenv';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from "firebase/firestore";
@@ -9,6 +8,7 @@ dotenv.config({ override: true });
 let localDb: any = null;
 if (process.env.DB_PATH && !process.env.VERCEL) {
   try {
+    const { default: Database } = await import('better-sqlite3');
     localDb = new Database(process.env.DB_PATH);
     localDb.exec(`
           CREATE TABLE IF NOT EXISTS messages (
