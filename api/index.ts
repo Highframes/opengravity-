@@ -34,8 +34,13 @@ bot.on("message:text", async (ctx) => {
 const handleUpdate = webhookCallback(bot, "http");
 
 export default async function handler(req: any, res: any) {
-    if (req.method === "POST") {
-        return handleUpdate(req, res);
+    try {
+        if (req.method === "POST") {
+            return await handleUpdate(req, res);
+        }
+        res.status(200).send("OpenGravity Bot está ATIVO e aguardando mensagens via Webhook do Telegram! 🚀");
+    } catch (e: any) {
+        console.error("DEBUG ERROR:", e);
+        res.status(500).json({ error: e.message, stack: e.stack });
     }
-    res.status(200).send("OpenGravity Bot está ATIVO e aguardando mensagens via Webhook do Telegram! 🚀");
 }
