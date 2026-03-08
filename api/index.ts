@@ -5,6 +5,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+if (!process.env.TELEGRAM_BOT_TOKEN) {
+    console.error("ERRO: TELEGRAM_BOT_TOKEN não configurado!");
+}
+
 const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN || "");
 const ALLOWED_IDS = process.env.TELEGRAM_ALLOWED_USER_IDS?.split(",").map(Number) || [];
 
@@ -24,8 +28,14 @@ bot.on("message:text", async (ctx) => {
         await ctx.reply(botReply);
     } catch (e) {
         console.error("Erro no processamento:", e);
-        // Não respondemos com erro no Telegram para não entrar em loop ou expor logs
     }
 });
 
-export default webhookCallback(bot, "http");
+const handleUpdate = webhookCallback(bot, "http");
+
+export default async function handler(req: any, res: any) {
+    if (req.method === "POST") {
+        return handleUpdate(req, res);
+    }
+    res.status(200).send("OpenGravity Bot está ATIVO e aguardando mensagens via Webhook do Telegram! 🚀");
+}
